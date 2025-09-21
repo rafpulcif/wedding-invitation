@@ -1,0 +1,29 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WeddingInfo from '../components/WeddingInfo.astro';
+import RSVPForm from '../components/RSVPForm.astro';
+---
+
+<Layout title="Boda Andrea y Miguel - Confirmación de Asistencia">
+  <main class="container">
+    <WeddingInfo />
+    <RSVPForm />
+  </main>
+</Layout>
+
+<style>
+  main {
+    animation: fadeIn 0.8s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>

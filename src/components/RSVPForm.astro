@@ -1,0 +1,217 @@
+---
+// RSVP Form component
+---
+
+<div id="rsvp-section">
+
+  <div class="banner banner-info">
+    <strong>🔒 CONFIDENCIAL: Por favor, no compartas este enlace con nadie que no haya recibido la invitación oficial. Este formulario es exclusivo para invitados confirmados.</strong>
+  </div>
+  
+  <div class="banner banner-warning">
+    <strong>⚠️ IMPORTANTE: No marques que llevarás acompañante si esta persona también ha recibido una invitación individual. Cada invitado debe confirmar su propia asistencia.</strong>
+  </div>
+
+  <form id="rsvp-form" style="background: white; padding: 40px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);">
+    <h2 style="text-align: center; color: var(--primary-green); font-size: 2rem; margin-bottom: 30px;">
+      Confirmación de Asistencia
+    </h2>
+    
+    <div id="existing-guest-warning" style="display: none;" class="banner banner-warning">
+      <strong>🔍 ATENCIÓN: Ya existe una confirmación registrada para este nombre. Si necesitas modificar tu confirmación, por favor contacta directamente con los novios.</strong>
+    </div>
+
+    <div class="form-group">
+      <label for="firstName" class="form-label">Nombre *</label>
+      <input type="text" id="firstName" name="firstName" class="form-input" required>
+    </div>
+
+    <div class="form-group">
+      <label for="lastName" class="form-label">Apellidos *</label>
+      <input type="text" id="lastName" name="lastName" class="form-input" required>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="hasCompanion" name="hasCompanion" class="checkbox">
+      <label for="hasCompanion" class="form-label" style="margin: 0; cursor: pointer;">
+        Asistiré con acompañante
+      </label>
+    </div>
+
+    <div id="companion-fields" class="companion-fields" style="display: none;">
+      <h3 style="color: var(--primary-green); margin-bottom: 20px; font-size: 1.2rem;">
+        Datos del acompañante
+      </h3>
+      
+      <div class="form-group">
+        <label for="companionFirstName" class="form-label">Nombre del acompañante *</label>
+        <input type="text" id="companionFirstName" name="companionFirstName" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="companionLastName" class="form-label">Apellidos del acompañante *</label>
+        <input type="text" id="companionLastName" name="companionLastName" class="form-input">
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 40px;">
+      <button type="submit" class="btn" id="submit-btn">
+        Confirmar Asistencia
+      </button>
+    </div>
+  </form>
+
+  <div id="success-message" style="display: none;" class="success-message">
+    <h3>¡Confirmación Exitosa! 🎉</h3>
+    <p>Hemos registrado tu asistencia correctamente. ¡Nos vemos en la boda!</p>
+    <p style="margin-top: 10px; color: var(--accent-gold);" class="cursive-bold">
+      Andrea y Miguel
+    </p>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('rsvp-form') as HTMLFormElement;
+  const hasCompanionCheckbox = document.getElementById('hasCompanion') as HTMLInputElement;
+  const companionFields = document.getElementById('companion-fields');
+  const companionFirstName = document.getElementById('companionFirstName') as HTMLInputElement;
+  const companionLastName = document.getElementById('companionLastName') as HTMLInputElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  const successMessage = document.getElementById('success-message');
+  const rsvpSection = document.getElementById('rsvp-section');
+  const existingGuestWarning = document.getElementById('existing-guest-warning');
+
+  let confirmedGuests: any[] = [];
+
+  // Fetch confirmed guests from API
+  async function fetchConfirmedGuests(): Promise<any[]> {
+    try {
+      const response = await fetch('/api/rsvp');
+      const data = await response.json();
+      if (data.success) {
+        confirmedGuests = data.guests;
+        return data.guests;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching guests:', error);
+      return [];
+    }
+  }
+
+  // Check if guest already exists
+  function isGuestAlreadyConfirmed(firstName: string, lastName: string): boolean {
+    return confirmedGuests.some(guest => 
+      guest.NOMBRE === firstName.toUpperCase() && 
+      guest.APELLIDOS === lastName.toUpperCase()
+    );
+  }
+
+  // Toggle companion fields
+  hasCompanionCheckbox.addEventListener('change', () => {
+    if (hasCompanionCheckbox.checked) {
+      companionFields!.style.display = 'block';
+      companionFirstName.required = true;
+      companionLastName.required = true;
+    } else {
+      companionFields!.style.display = 'none';
+      companionFirstName.required = false;
+      companionLastName.required = false;
+      companionFirstName.value = '';
+      companionLastName.value = '';
+    }
+  });
+
+  // Real-time validation for existing guests
+  function checkExistingGuest() {
+    const firstName = (document.getElementById('firstName') as HTMLInputElement).value.trim();
+    const lastName = (document.getElementById('lastName') as HTMLInputElement).value.trim();
+    
+    if (firstName && lastName && isGuestAlreadyConfirmed(firstName, lastName)) {
+      existingGuestWarning!.style.display = 'block';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Ya confirmado';
+    } else {
+      existingGuestWarning!.style.display = 'none';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Confirmar Asistencia';
+    }
+  }
+
+  document.getElementById('firstName')!.addEventListener('input', checkExistingGuest);
+  document.getElementById('lastName')!.addEventListener('input', checkExistingGuest);
+
+  // Handle form submission
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    const firstName = (formData.get('firstName') as string).trim();
+    const lastName = (formData.get('lastName') as string).trim();
+    
+    // Double-check for existing guest
+    if (isGuestAlreadyConfirmed(firstName, lastName)) {
+      alert('Este invitado ya ha confirmado su asistencia.');
+      return;
+    }
+    
+    const hasCompanion = hasCompanionCheckbox.checked;
+    const companionFirstNameValue = hasCompanion ? (formData.get('companionFirstName') as string).trim() : '';
+    const companionLastNameValue = hasCompanion ? (formData.get('companionLastName') as string).trim() : '';
+    
+    // Validate companion fields if checkbox is checked
+    if (hasCompanion && (!companionFirstNameValue || !companionLastNameValue)) {
+      alert('Por favor, completa los datos del acompañante.');
+      return;
+    }
+    
+    // Disable submit button while processing
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Procesando...';
+    
+    try {
+      const response = await fetch('/api/rsvp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          hasCompanion,
+          companionFirstName: companionFirstNameValue,
+          companionLastName: companionLastNameValue
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Show success message
+        rsvpSection!.style.display = 'none';
+        successMessage!.style.display = 'block';
+        
+        // Scroll to success message
+        successMessage!.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        alert(result.error || 'Ocurrió un error al procesar tu confirmación.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirmar Asistencia';
+      }
+      
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('Ocurrió un error al procesar tu confirmación. Por favor, intenta nuevamente.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Confirmar Asistencia';
+    }
+  });
+
+  // Load confirmed guests on page load
+  window.addEventListener('load', async () => {
+    await fetchConfirmedGuests();
+    if (confirmedGuests.length > 0) {
+      console.log(`${confirmedGuests.length} confirmaciones registradas`);
+    }
+  });
+</script>

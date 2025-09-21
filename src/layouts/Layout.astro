@@ -1,0 +1,245 @@
+---
+export interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Antic+Didone&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--primary-green: #7a8471;
+		--secondary-green: #9eb19a;
+		--accent-gold: #c8b570;
+		--light-cream: #faf9f6;
+		--text-dark: #4a4a4a;
+		--border-light: #e8e5e0;
+		--success-green: #6b8e5a;
+		--warning-amber: #d4a574;
+	}
+
+	* {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	html, body {
+		font-family: 'Antic Didone', serif;
+		background-color: var(--light-cream);
+		color: var(--text-dark);
+		line-height: 1.6;
+		min-height: 100vh;
+	}
+
+	.cursive {
+		font-family: 'Dancing Script', cursive;
+		font-weight: 400;
+	}
+
+	.cursive-bold {
+		font-family: 'Dancing Script', cursive;
+		font-weight: 700;
+	}
+
+	.container {
+		max-width: 800px;
+		margin: 0 auto;
+		padding: 20px;
+	}
+
+	.floral-decoration {
+		position: relative;
+		overflow: hidden;
+	}
+
+	.floral-decoration::before {
+		content: '';
+		position: absolute;
+		top: -20px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 200px;
+		height: 40px;
+		background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40'%3E%3Cpath d='M10,25 Q50,5 100,25 Q150,45 190,25' stroke='%23799c74' stroke-width='2' fill='none'/%3E%3Ccircle cx='25' cy='20' r='3' fill='%23c8b570'/%3E%3Ccircle cx='100' cy='25' r='4' fill='%23799c74'/%3E%3Ccircle cx='175' cy='20' r='3' fill='%23c8b570'/%3E%3C/svg%3E") no-repeat center;
+		background-size: contain;
+		opacity: 0.7;
+	}
+
+	.btn {
+		background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+		color: white;
+		border: none;
+		padding: 14px 32px;
+		border-radius: 30px;
+		font-family: 'Antic Didone', serif;
+		font-size: 16px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		box-shadow: 0 4px 15px rgba(122, 132, 113, 0.3);
+	}
+
+	.btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(122, 132, 113, 0.4);
+		background: linear-gradient(135deg, var(--secondary-green) 0%, var(--primary-green) 100%);
+	}
+
+	.btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+		transform: none;
+		box-shadow: 0 2px 8px rgba(122, 132, 113, 0.2);
+	}
+
+	.form-group {
+		margin-bottom: 24px;
+	}
+
+	.form-label {
+		display: block;
+		margin-bottom: 8px;
+		color: var(--primary-green);
+		font-weight: 600;
+		font-size: 16px;
+	}
+
+	.form-input {
+		width: 100%;
+		padding: 14px 18px;
+		border: 2px solid var(--border-light);
+		border-radius: 12px;
+		font-family: 'Antic Didone', serif;
+		font-size: 16px;
+		transition: all 0.3s ease;
+		background-color: white;
+	}
+
+	.form-input:focus {
+		outline: none;
+		border-color: var(--primary-green);
+		box-shadow: 0 0 0 3px rgba(122, 132, 113, 0.1);
+	}
+
+	.checkbox-group {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin: 20px 0;
+	}
+
+	.checkbox {
+		width: 20px;
+		height: 20px;
+		cursor: pointer;
+		accent-color: var(--primary-green);
+	}
+
+	.banner {
+		padding: 16px 20px;
+		border-radius: 12px;
+		margin-bottom: 24px;
+		border-left: 4px solid;
+		font-size: 14px;
+		line-height: 1.5;
+	}
+
+	.banner-warning {
+		background-color: #fff8e1;
+		border-color: var(--warning-amber);
+		color: #b8860b;
+	}
+
+	.banner-info {
+		background-color: #e8f5e8;
+		border-color: var(--success-green);
+		color: var(--success-green);
+	}
+
+	.wedding-info {
+		text-align: center;
+		margin-bottom: 40px;
+		padding: 40px 20px;
+		background: white;
+		border-radius: 20px;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+		position: relative;
+	}
+
+	.couple-names {
+		font-size: 3.5rem;
+		color: var(--primary-green);
+		margin: 20px 0;
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.date-info {
+		font-size: 1.8rem;
+		color: var(--accent-gold);
+		margin: 20px 0;
+	}
+
+	.venue-info {
+		color: var(--text-dark);
+		font-size: 1.1rem;
+		margin: 15px 0;
+	}
+
+	.success-message {
+		background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%);
+		border: 2px solid var(--success-green);
+		border-radius: 16px;
+		padding: 30px;
+		text-align: center;
+		margin-top: 30px;
+	}
+
+	.success-message h3 {
+		color: var(--success-green);
+		font-size: 1.5rem;
+		margin-bottom: 10px;
+	}
+
+	.companion-fields {
+		background: #f8f9fa;
+		padding: 20px;
+		border-radius: 12px;
+		margin-top: 20px;
+		border: 1px solid var(--border-light);
+	}
+
+	@media (max-width: 768px) {
+		.container {
+			padding: 15px;
+		}
+		
+		.couple-names {
+			font-size: 2.5rem;
+		}
+		
+		.date-info {
+			font-size: 1.4rem;
+		}
+		
+		.wedding-info {
+			padding: 30px 15px;
+		}
+	}
+</style>
