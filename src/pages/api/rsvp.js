@@ -1,77 +1,51 @@
-import * as XLSX from 'xlsx';
-import fs from 'fs';
-import path from 'path';
-
 export const prerender = false;
 
-const EXCEL_FILE_PATH = path.join(process.cwd(), 'data', 'confirmaciones_boda.xlsx');
+// Use Netlify Blobs for production storage
+const STORAGE_KEY = 'wedding-rsvp-guests';
 
-function ensureExcelFile() {
-  const dataDir = path.dirname(EXCEL_FILE_PATH);
-  
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  
-  if (!fs.existsSync(EXCEL_FILE_PATH)) {
-    const initialData = [];
-    const worksheet = XLSX.utils.json_to_sheet(initialData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Confirmaciones');
-    
-    const cols = [
-      { wch: 20 }, // NOMBRE
-      { wch: 25 }, // APELLIDOS
-      { wch: 15 }, // ACOMPAÑANTE
-      { wch: 20 }, // NOMBRE_ACOMPAÑANTE
-      { wch: 25 }, // APELLIDOS_ACOMPAÑANTE
-      { wch: 20 }  // FECHA_CONFIRMACION
-    ];
-    worksheet['!cols'] = cols;
-    
-    XLSX.writeFile(workbook, EXCEL_FILE_PATH);
-  }
-}
-
-function readExcelFile() {
+async function readGuestData() {
   try {
-    ensureExcelFile();
-    if (!fs.existsSync(EXCEL_FILE_PATH)) {
-      return [];
+    // Check if we're in a Netlify environment
+    if (typeof Astro !== 'undefined' && Astro.locals?.netlify?.blobs) {
+      const store = Astro.locals.netlify.blobs;
+      const data = await store.get(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
     }
-    const fileBuffer = fs.readFileSync(EXCEL_FILE_PATH);
-    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-    const worksheet = workbook.Sheets['Confirmaciones'];
-    if (!worksheet) {
-      return [];
+
+    // Fallback for local development - use localStorage simulation
+    if (typeof globalThis !== 'undefined' && !globalThis.localStorage) {
+      globalThis.localStorage = new Map();
     }
-    return XLSX.utils.sheet_to_json(worksheet);
+
+    const stored = globalThis.localStorage?.get?.(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error('Error reading Excel file:', error);
+    console.error('Error reading guest data:', error);
     return [];
   }
 }
 
-function writeExcelFile(data) {
+async function writeGuestData(data) {
   try {
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Confirmaciones');
-    
-    const cols = [
-      { wch: 20 }, // NOMBRE
-      { wch: 25 }, // APELLIDOS
-      { wch: 15 }, // ACOMPAÑANTE
-      { wch: 20 }, // NOMBRE_ACOMPAÑANTE
-      { wch: 25 }, // APELLIDOS_ACOMPAÑANTE
-      { wch: 20 }  // FECHA_CONFIRMACION
-    ];
-    worksheet['!cols'] = cols;
-    
-    XLSX.writeFile(workbook, EXCEL_FILE_PATH);
-    return true;
+    // Check if we're in a Netlify environment
+    if (typeof Astro !== 'undefined' && Astro.locals?.netlify?.blobs) {
+      const store = Astro.locals.netlify.blobs;
+      await store.set(STORAGE_KEY, JSON.stringify(data));
+      return true;
+    }
+
+    // Fallback for local development
+    if (typeof globalThis !== 'undefined') {
+      if (!globalThis.localStorage) {
+        globalThis.localStorage = new Map();
+      }
+      globalThis.localStorage.set(STORAGE_KEY, JSON.stringify(data));
+      return true;
+    }
+
+    return false;
   } catch (error) {
-    console.error('Error writing Excel file:', error);
+    console.error('Error writing guest data:', error);
     return false;
   }
 }
@@ -83,7 +57,7 @@ function isGuestAlreadyConfirmed(guests, firstName, lastName) {
   );
 }
 
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
   try {
     let body;
     try {
@@ -100,39 +74,42 @@ export async function POST({ request }) {
     }
 
     const { firstName, lastName, hasCompanion, companionFirstName, companionLastName } = body;
-    
+
     if (!firstName || !lastName) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Nombre y apellidos son requeridos' 
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Nombre y apellidos son requeridos'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    
-    const existingGuests = readExcelFile();
-    
+
+    // Set Astro context for storage functions
+    globalThis.Astro = { locals };
+
+    const existingGuests = await readGuestData();
+
     if (isGuestAlreadyConfirmed(existingGuests, firstName.trim(), lastName.trim())) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Este invitado ya ha confirmado su asistencia' 
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Este invitado ya ha confirmado su asistencia'
       }), {
         status: 409,
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    
+
     if (hasCompanion && (!companionFirstName || !companionLastName)) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Datos del acompañante son requeridos' 
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Datos del acompañante son requeridos'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    
+
     const guestData = {
       NOMBRE: firstName.trim().toUpperCase(),
       APELLIDOS: lastName.trim().toUpperCase(),
@@ -141,14 +118,14 @@ export async function POST({ request }) {
       APELLIDOS_ACOMPAÑANTE: hasCompanion ? companionLastName.trim().toUpperCase() : '',
       FECHA_CONFIRMACION: new Date().toLocaleString('es-ES')
     };
-    
+
     const updatedGuests = [...existingGuests, guestData];
-    
-    const success = writeExcelFile(updatedGuests);
-    
+
+    const success = await writeGuestData(updatedGuests);
+
     if (success) {
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         message: 'Confirmación registrada exitosamente',
         totalGuests: updatedGuests.length
       }), {
@@ -156,20 +133,20 @@ export async function POST({ request }) {
         headers: { 'Content-Type': 'application/json' }
       });
     } else {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Error al guardar la confirmación' 
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Error al guardar la confirmación'
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    
+
   } catch (error) {
     console.error('API Error:', error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: 'Error interno del servidor' 
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Error interno del servidor'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -177,11 +154,14 @@ export async function POST({ request }) {
   }
 }
 
-export async function GET() {
+export async function GET({ locals }) {
   try {
-    const guests = readExcelFile();
-    return new Response(JSON.stringify({ 
-      success: true, 
+    // Set Astro context for storage functions
+    globalThis.Astro = { locals };
+
+    const guests = await readGuestData();
+    return new Response(JSON.stringify({
+      success: true,
       guests: guests,
       totalGuests: guests.length
     }), {
@@ -190,9 +170,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error('API Error:', error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: 'Error al obtener las confirmaciones' 
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Error al obtener las confirmaciones'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
