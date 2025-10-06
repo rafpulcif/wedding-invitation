@@ -1,16 +1,28 @@
 export const prerender = false;
 
+import { getStore } from '@netlify/blobs';
+
 // Use Netlify Blobs for production storage
 const STORAGE_KEY = 'wedding-rsvp-guests';
+const STORE_NAME = 'wedding-data';
 
-async function readGuestData(locals) {
+async function readGuestData(context) {
   try {
-    // Check if we're in a Netlify environment with Blobs
-    if (locals?.netlify?.blobs) {
-      const store = locals.netlify.blobs;
-      const data = await store.get(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
+    // Try to get Netlify Blobs store
+    const store = getStore({
+      name: STORE_NAME,
+      siteID: context?.site?.id,
+      token: context?.token
+    });
+
+    const data = await store.get(STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
     }
+
+    return [];
+  } catch (error) {
+    console.error('Error reading guest data:', error);
 
     // Fallback for local development - use localStorage simulation
     if (typeof globalThis !== 'undefined' && !globalThis.localStorage) {
@@ -19,20 +31,22 @@ async function readGuestData(locals) {
 
     const stored = globalThis.localStorage?.get?.(STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    console.error('Error reading guest data:', error);
-    return [];
   }
 }
 
-async function writeGuestData(locals, data) {
+async function writeGuestData(context, data) {
   try {
-    // Check if we're in a Netlify environment with Blobs
-    if (locals?.netlify?.blobs) {
-      const store = locals.netlify.blobs;
-      await store.set(STORAGE_KEY, JSON.stringify(data));
-      return true;
-    }
+    // Try to get Netlify Blobs store
+    const store = getStore({
+      name: STORE_NAME,
+      siteID: context?.site?.id,
+      token: context?.token
+    });
+
+    await store.set(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch (error) {
+    console.error('Error writing guest data:', error);
 
     // Fallback for local development
     if (typeof globalThis !== 'undefined') {
@@ -44,9 +58,6 @@ async function writeGuestData(locals, data) {
     }
 
     return false;
-  } catch (error) {
-    console.error('Error writing guest data:', error);
-    return false;
   }
 }
 
@@ -57,7 +68,8 @@ function isGuestAlreadyConfirmed(guests, firstName, lastName) {
   );
 }
 
-export async function POST({ request, locals }) {
+export async function POST({ request, locals, site, cookies }) {
+  const context = { site, token: import.meta.env.NETLIFY_BLOBS_CONTEXT };
   try {
     let body;
     try {
@@ -85,7 +97,7 @@ export async function POST({ request, locals }) {
       });
     }
 
-    const existingGuests = await readGuestData(locals);
+    const existingGuests = await readGuestData(context);
 
     if (isGuestAlreadyConfirmed(existingGuests, firstName.trim(), lastName.trim())) {
       return new Response(JSON.stringify({
@@ -118,7 +130,7 @@ export async function POST({ request, locals }) {
 
     const updatedGuests = [...existingGuests, guestData];
 
-    const success = await writeGuestData(locals, updatedGuests);
+    const success = await writeGuestData(context, updatedGuests);
 
     if (success) {
       return new Response(JSON.stringify({
@@ -151,9 +163,10 @@ export async function POST({ request, locals }) {
   }
 }
 
-export async function GET({ locals }) {
+export async function GET({ locals, site }) {
+  const context = { site, token: import.meta.env.NETLIFY_BLOBS_CONTEXT };
   try {
-    const guests = await readGuestData(locals);
+    const guests = await readGuestData(context);
     return new Response(JSON.stringify({
       success: true,
       guests: guests,

@@ -1,18 +1,29 @@
 import * as XLSX from 'xlsx';
+import { getStore } from '@netlify/blobs';
 
 export const prerender = false;
 
 // Use the same storage functions as the main RSVP API
 const STORAGE_KEY = 'wedding-rsvp-guests';
+const STORE_NAME = 'wedding-data';
 
-async function readGuestData(locals) {
+async function readGuestData(context) {
   try {
-    // Check if we're in a Netlify environment
-    if (locals?.netlify?.blobs) {
-      const store = locals.netlify.blobs;
-      const data = await store.get(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
+    // Try to get Netlify Blobs store
+    const store = getStore({
+      name: STORE_NAME,
+      siteID: context?.site?.id,
+      token: context?.token
+    });
+
+    const data = await store.get(STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
     }
+
+    return [];
+  } catch (error) {
+    console.error('Error reading guest data:', error);
 
     // Fallback for local development
     if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
@@ -21,15 +32,13 @@ async function readGuestData(locals) {
     }
 
     return [];
-  } catch (error) {
-    console.error('Error reading guest data:', error);
-    return [];
   }
 }
 
-export async function GET({ locals }) {
+export async function GET({ locals, site }) {
+  const context = { site, token: import.meta.env.NETLIFY_BLOBS_CONTEXT };
   try {
-    const guests = await readGuestData(locals);
+    const guests = await readGuestData(context);
 
     if (guests.length === 0) {
       return new Response(JSON.stringify({
