@@ -3,11 +3,11 @@ export const prerender = false;
 // Use Netlify Blobs for production storage
 const STORAGE_KEY = 'wedding-rsvp-guests';
 
-async function readGuestData() {
+async function readGuestData(locals) {
   try {
-    // Check if we're in a Netlify environment
-    if (typeof Astro !== 'undefined' && Astro.locals?.netlify?.blobs) {
-      const store = Astro.locals.netlify.blobs;
+    // Check if we're in a Netlify environment with Blobs
+    if (locals?.netlify?.blobs) {
+      const store = locals.netlify.blobs;
       const data = await store.get(STORAGE_KEY);
       return data ? JSON.parse(data) : [];
     }
@@ -25,11 +25,11 @@ async function readGuestData() {
   }
 }
 
-async function writeGuestData(data) {
+async function writeGuestData(locals, data) {
   try {
-    // Check if we're in a Netlify environment
-    if (typeof Astro !== 'undefined' && Astro.locals?.netlify?.blobs) {
-      const store = Astro.locals.netlify.blobs;
+    // Check if we're in a Netlify environment with Blobs
+    if (locals?.netlify?.blobs) {
+      const store = locals.netlify.blobs;
       await store.set(STORAGE_KEY, JSON.stringify(data));
       return true;
     }
@@ -85,10 +85,7 @@ export async function POST({ request, locals }) {
       });
     }
 
-    // Set Astro context for storage functions
-    globalThis.Astro = { locals };
-
-    const existingGuests = await readGuestData();
+    const existingGuests = await readGuestData(locals);
 
     if (isGuestAlreadyConfirmed(existingGuests, firstName.trim(), lastName.trim())) {
       return new Response(JSON.stringify({
@@ -121,7 +118,7 @@ export async function POST({ request, locals }) {
 
     const updatedGuests = [...existingGuests, guestData];
 
-    const success = await writeGuestData(updatedGuests);
+    const success = await writeGuestData(locals, updatedGuests);
 
     if (success) {
       return new Response(JSON.stringify({
@@ -156,10 +153,7 @@ export async function POST({ request, locals }) {
 
 export async function GET({ locals }) {
   try {
-    // Set Astro context for storage functions
-    globalThis.Astro = { locals };
-
-    const guests = await readGuestData();
+    const guests = await readGuestData(locals);
     return new Response(JSON.stringify({
       success: true,
       guests: guests,

@@ -393,16 +393,14 @@
     successModal!.style.display = 'none';
     document.body.style.overflow = 'auto'; // Restore scrolling
 
-    // Hide the form and mark as confirmed in localStorage
-    const rsvpSection = document.getElementById('rsvp-section');
-    rsvpSection!.style.display = 'none';
-
-    // Store confirmation state in localStorage
-    localStorage.setItem('wedding-rsvp-confirmed', 'true');
-    localStorage.setItem('wedding-rsvp-timestamp', new Date().toISOString());
-
-    // Show thank you message
-    showThankYouMessage();
+    // Reset form to allow multiple submissions
+    form.reset();
+    companionFields!.style.display = 'none';
+    companionFirstName.required = false;
+    companionLastName.required = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Confirmar Asistencia';
+    existingGuestWarning!.style.display = 'none';
   }
 
   function showDuplicateModal() {
@@ -419,38 +417,6 @@
     submitBtn.textContent = 'Confirmar Asistencia';
   }
 
-  function showThankYouMessage() {
-    thankYouMessage!.style.display = 'block';
-  }
-
-  function resetFormState() {
-    // Clear localStorage
-    localStorage.removeItem('wedding-rsvp-confirmed');
-    localStorage.removeItem('wedding-rsvp-timestamp');
-
-    // Hide thank you message and show form
-    thankYouMessage!.style.display = 'none';
-    const rsvpSection = document.getElementById('rsvp-section');
-    rsvpSection!.style.display = 'block';
-
-    // Reset form
-    form.reset();
-    companionFields!.style.display = 'none';
-    companionFirstName.required = false;
-    companionLastName.required = false;
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Confirmar Asistencia';
-    existingGuestWarning!.style.display = 'none';
-  }
-
-  function checkConfirmationState() {
-    const isConfirmed = localStorage.getItem('wedding-rsvp-confirmed');
-    if (isConfirmed === 'true') {
-      const rsvpSection = document.getElementById('rsvp-section');
-      rsvpSection!.style.display = 'none';
-      showThankYouMessage();
-    }
-  }
 
   // Success modal event listeners
   modalClose?.addEventListener('click', hideSuccessModal);
@@ -461,9 +427,6 @@
   duplicateModalClose?.addEventListener('click', hideDuplicateModal);
   duplicateModalOkBtn?.addEventListener('click', hideDuplicateModal);
   duplicateModalOverlay?.addEventListener('click', hideDuplicateModal);
-
-  // Reset form button event listener
-  resetFormBtn?.addEventListener('click', resetFormState);
 
   // Close modals with Escape key
   document.addEventListener('keydown', (e) => {
@@ -603,9 +566,6 @@
 
   // Load confirmed guests on page load
   window.addEventListener('load', async () => {
-    // Check if user has already confirmed
-    checkConfirmationState();
-
     await fetchConfirmedGuests();
     if (confirmedGuests.length > 0) {
       console.log(`${confirmedGuests.length} confirmaciones registradas`);
