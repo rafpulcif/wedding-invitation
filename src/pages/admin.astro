@@ -1,0 +1,371 @@
+---
+// Admin page to view and download all confirmations
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración - Confirmaciones de Boda</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      color: #333;
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 1rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .stat-card .number {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+
+    .stat-card .label {
+      color: #666;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .actions {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 15px 40px;
+      margin: 10px;
+      border: none;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-secondary {
+      background: #48bb78;
+      color: white;
+      box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+    }
+
+    .btn-secondary:hover {
+      background: #38a169;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(72, 187, 120, 0.6);
+    }
+
+    .table-container {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #f8f9fa;
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #dee2e6;
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 15px;
+      border-bottom: 1px solid #e9ecef;
+      color: #495057;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge-yes {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-no {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #666;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px;
+      color: #666;
+      font-size: 1.2rem;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 1.5rem;
+      }
+
+      .stat-card .number {
+        font-size: 2rem;
+      }
+
+      table {
+        font-size: 0.9rem;
+      }
+
+      th, td {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📋 Panel de Administración</h1>
+      <p>Confirmaciones de Asistencia - Boda Rafael y Patricia</p>
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <div class="number" id="total-guests">0</div>
+        <div class="label">Confirmaciones</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="with-companion">0</div>
+        <div class="label">Con Acompañante</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="total-people">0</div>
+        <div class="label">Total Personas</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="refresh-btn" onclick="loadGuests()">
+        🔄 Actualizar Datos
+      </button>
+      <a class="btn btn-secondary" href="/api/export" download="confirmaciones_boda.xlsx">
+        📥 Descargar Excel
+      </a>
+    </div>
+
+    <div class="table-container">
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Cargando confirmaciones...</p>
+      </div>
+
+      <div id="error" class="error" style="display: none;"></div>
+
+      <div id="empty" class="empty" style="display: none;">
+        <p>📭 No hay confirmaciones registradas aún.</p>
+      </div>
+
+      <table id="guests-table" style="display: none;">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nombre</th>
+            <th>Apellidos</th>
+            <th>Acompañante</th>
+            <th>Nombre Acompañante</th>
+            <th>Apellidos Acompañante</th>
+            <th>Fecha Confirmación</th>
+          </tr>
+        </thead>
+        <tbody id="guests-tbody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    async function loadGuests() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const empty = document.getElementById('empty');
+      const table = document.getElementById('guests-table');
+      const tbody = document.getElementById('guests-tbody');
+
+      // Show loading
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      empty.style.display = 'none';
+      table.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/rsvp');
+        const data = await response.json();
+
+        loading.style.display = 'none';
+
+        if (!data.success) {
+          error.textContent = data.error || 'Error al cargar las confirmaciones';
+          error.style.display = 'block';
+          return;
+        }
+
+        const guests = data.guests || [];
+
+        if (guests.length === 0) {
+          empty.style.display = 'block';
+          updateStats(0, 0, 0);
+          return;
+        }
+
+        // Calculate statistics
+        const withCompanion = guests.filter(g => g.ACOMPAÑANTE === 'SÍ').length;
+        const totalPeople = guests.length + withCompanion;
+
+        updateStats(guests.length, withCompanion, totalPeople);
+
+        // Populate table
+        tbody.innerHTML = guests.map((guest, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${guest.NOMBRE}</td>
+            <td>${guest.APELLIDOS}</td>
+            <td>
+              <span class="badge ${guest.ACOMPAÑANTE === 'SÍ' ? 'badge-yes' : 'badge-no'}">
+                ${guest.ACOMPAÑANTE}
+              </span>
+            </td>
+            <td>${guest.NOMBRE_ACOMPAÑANTE || '-'}</td>
+            <td>${guest.APELLIDOS_ACOMPAÑANTE || '-'}</td>
+            <td>${guest.FECHA_CONFIRMACION}</td>
+          </tr>
+        `).join('');
+
+        table.style.display = 'table';
+
+      } catch (err) {
+        loading.style.display = 'none';
+        error.textContent = 'Error de conexión. Por favor, intenta nuevamente.';
+        error.style.display = 'block';
+        console.error('Error loading guests:', err);
+      }
+    }
+
+    function updateStats(total, withCompanion, totalPeople) {
+      document.getElementById('total-guests').textContent = total;
+      document.getElementById('with-companion').textContent = withCompanion;
+      document.getElementById('total-people').textContent = totalPeople;
+    }
+
+    // Load guests on page load
+    window.addEventListener('load', loadGuests);
+  </script>
+</body>
+</html>
